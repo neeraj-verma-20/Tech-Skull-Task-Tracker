@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tech Skull Task Tracker</title>
+    <style>
+        body { font-family: 'Poppins', sans-serif; margin: 0; padding: 0; background-color: #f8f9fa; text-align: center; }
+        .container { max-width: 800px; margin: 30px auto; background: white; padding: 20px; box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1); border-radius: 10px; }
+        h2 { color: #007bff; margin-bottom: 20px; }
+        input, button { margin: 10px 0; padding: 12px; width: calc(100% - 24px); border-radius: 5px; border: 1px solid #ddd; font-size: 16px; }
+        button { background: #007bff; color: white; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        button:hover { background: #0056b3; }
+        .table-container { overflow-x: auto; margin-top: 20px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; font-size: 14px; }
+        th { background: #007bff; color: white; text-align: center; }
+        .completed { background: #d4edda !important; color: #155724; }
+        .task-btn { padding: 8px 12px; border: none; border-radius: 5px; background: #28a745; color: white; cursor: pointer; transition: 0.3s; margin-right: 5px; }
+        .task-btn:hover { background: #218838; }
+        .delete-btn { background: #dc3545; }
+        .delete-btn:hover { background: #c82333; }
+        .clear-btn { background: #ffc107; width: 100%; }
+        .clear-btn:hover { background: #e0a800; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Tech Skull Task Tracker</h2>
+        <p id="currentDate"></p>
+        <input type="date" id="taskDate">
+        <input type="text" id="task" placeholder="Task Name">
+        <input type="text" id="assignee" placeholder="Assigned By">
+        <input type="text" id="assignTo" placeholder="Assign To">
+        <button onclick="addTask()">Add Task</button>
+        <button class="clear-btn" onclick="confirmClearTasks()">Clear All Tasks</button>
+        
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Task</th>
+                        <th>Assigned By</th>
+                        <th>Assigned To</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="taskList"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            document.getElementById("currentDate").innerText = `Today's Date: ${formatDate(new Date())}`;
+            document.getElementById("taskDate").value = getFormattedDateInput(new Date());
+            loadTasks();
+        });
+
+        function addTask() {
+            let taskDate = document.getElementById("taskDate").value;
+            let formattedDate = formatDate(new Date(taskDate));
+            let task = document.getElementById("task").value.trim();
+            let assignee = document.getElementById("assignee").value.trim();
+            let assignTo = document.getElementById("assignTo").value.trim();
+            let id = Date.now();
+
+            if (!taskDate || !task || !assignee || !assignTo) {
+                alert("Please fill in all fields");
+                return;
+            }
+
+            let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+            tasks.push({ id, date: taskDate, formattedDate, task, assignee, assignTo, status: "Pending" });
+            tasks.sort((a, b) => new Date(a.date) - new Date(b.date));
+            localStorage.setItem("tasks", JSON.stringify(tasks));
+            loadTasks();
+
+            document.getElementById("task").value = "";
+            document.getElementById("assignee").value = "";
+            document.getElementById("assignTo").value = "";
+        }
+
+        function markComplete(id) {
+            let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+            tasks = tasks.map(t => t.id === id ? { ...t, status: "Completed" } : t);
+            localStorage.setItem("tasks", JSON.stringify(tasks));
+            loadTasks();
+        }
+
+        function deleteTask(id) {
+            let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+            tasks = tasks.filter(t => t.id !== id);
+            localStorage.setItem("tasks", JSON.stringify(tasks));
+            loadTasks();
+        }
+
+        function confirmClearTasks() {
+            if (confirm("Are you sure you want to clear all tasks?")) {
+                clearTasks();
+            }
+        }
+
+        function clearTasks() {
+            localStorage.removeItem("tasks");
+            loadTasks();
+        }
+
+        function loadTasks() {
+            let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+            let table = document.getElementById("taskList");
+            table.innerHTML = "";
+
+            tasks.forEach(({ id, formattedDate, task, assignee, assignTo, status }) => {
+                let row = table.insertRow();
+                row.innerHTML = `
+                    <td>${formattedDate}</td>
+                    <td>${task}</td>
+                    <td>${assignee}</td>
+                    <td>${assignTo}</td>
+                    <td>${status}</td>
+                    <td>
+                        <button class='task-btn' onclick="markComplete(${id})">Complete</button>
+                        <button class='task-btn delete-btn' onclick="deleteTask(${id})">Delete</button>
+                    </td>`;
+                if (status === "Completed") row.classList.add("completed");
+            });
+        }
+
+        function formatDate(date) {
+            return `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getFullYear()}`;
+        }
+
+        function getFormattedDateInput(date) {
+            return date.toISOString().split('T')[0];
+        }
+    </script>
+</body>
+</html>
